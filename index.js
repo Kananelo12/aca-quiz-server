@@ -8,7 +8,7 @@ const { signUp, signIn, signOut, getCurrentUser } = require('./auth.action');
 const app = express();
 
 // Allow your CRA origin (adjust if needed)
-app.use(cors({ origin: 'https://joel-aca-erp2025-quiz.vercel.app/', credentials: true }));
+app.use(cors({ origin: 'https://joel-aca-erp2025-quiz.vercel.app', credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
