@@ -7,18 +7,26 @@ console.log("🔥 Firestore db instance:", db ? "OK" : "MISSING");
 
 const app = express();
 
-const cors = require("cors");
+// ─── MANUAL CORS MIDDLEWARE ──────────────────────────────────────
+// This will echo back the request's Origin header on every response
+// and handle OPTIONS preflight in one shot.
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  // Allow your production front‑end and localhost dev
+  if (origin === 'https://joel-aca-erp2025-quiz.vercel.app' ||
+      origin === 'http://localhost:3001') {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') {
+    // OPTIONS preflight: respond immediately
+    return res.status(200).end();
+  }
+  next();
+});
 
-const corsOptions = {
-  origin: [
-    'http://localhost:3001', // Local development
-    'https://joel-aca-erp2025-quiz.vercel.app', // Production
-  ],
-  credentials: true, // Allow cookies to be sent
-}
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Handle preflight requests
 app.use(express.json());
 app.use(cookieParser());
 
