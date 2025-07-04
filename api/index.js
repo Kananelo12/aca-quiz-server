@@ -2,35 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const serverless = require('serverless-http');
-const { signUp, signIn, signOut, getCurrentUser } = require('./auth.action');
+const { signUp, signIn, signOut, getCurrentUser } = require("../auth.action");
 
 const app = express();
-const cors = require("cors");
-
-// Simplified CORS: whitelist both dev and prod origins
-// app.use(cors({
-//   origin: [
-//     'http://localhost:3001',                // CRA dev
-//     'https://joel-aca-erp2025-quiz.vercel.app' // prod CRA
-//   ],
-//   methods: ['GET','POST','OPTIONS'],
-//   allowedHeaders: ['Content-Type'],
-//   credentials: true
-// }));
 
 app.use(cors({
   origin: true, // Allow all origins
   credentials: true, // Allow cookies to be sent
 }))
-
-// Ensure preflight (OPTIONS) requests are handled
-// app.options('*', cors({
-//   origin: [
-//     'http://localhost:3001',
-//     'https://joel-aca-erp2025-quiz.vercel.app'
-//   ],
-//   credentials: true
-// }));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -65,6 +44,22 @@ app.get('/api/me', async (req, res) => {
   const user = await getCurrentUser(req);
   res.json(user);
 });
+
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Test endpoint working!', data: [1, 2, 3, 4, 5] });
+});
+
+app.get('/', (req, res) => {
+  res.send('Welcome to the ACA Quiz API!');
+});
+
+// If running directly (not via Vercel), start a normal HTTP server
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`▶️  Server listening at http://localhost:${PORT}`);
+  });
+}
 
 // Wrap in serverless for Vercel
 module.exports = serverless(app);
