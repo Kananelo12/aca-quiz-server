@@ -2,30 +2,23 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const serverless = require('serverless-http');
-const { signUp, signIn, signOut, getCurrentUser } = require("../auth.action");
+const { signUp, signIn, signOut, getCurrentUser, db } = require("../auth.action");
+console.log("🔥 Firestore db instance:", db ? "OK" : "MISSING");
 
 const app = express();
 
-// ─── MANUAL CORS MIDDLEWARE ──────────────────────────────────────
-// This will echo back the request's Origin header on every response
-// and handle OPTIONS preflight in one shot.
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  // Allow your production front‑end and localhost dev
-  if (origin === 'https://joel-aca-erp2025-quiz.vercel.app' ||
-      origin === 'http://localhost:3001') {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') {
-    // OPTIONS preflight: respond immediately
-    return res.status(200).end();
-  }
-  next();
-});
+const cors = require("cors");
 
+const corsOptions = {
+  origin: [
+    'http://localhost:3001', // Local development
+    'https://joel-aca-erp2025-quiz.vercel.app', // Production
+  ],
+  credentials: true, // Allow cookies to be sent
+}
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight requests
 app.use(express.json());
 app.use(cookieParser());
 
@@ -58,6 +51,82 @@ app.post('/api/signout', async (_req, res) => {
 app.get('/api/me', async (req, res) => {
   const user = await getCurrentUser(req);
   res.json(user);
+});
+
+// Submit a quiz result
+app.post('/api/submit-quiz', async (req, res) => {
+  console.log("📝 /api/submit-quiz received:", req.body);
+  const { userId, score, total, timestamp, message } = req.body;
+  try {
+    // Each user’s submissions live under /users/{uid}/submissions
+    await db
+      .collection('users')
+      .doc(userId)
+      .collection('submissions')
+      .add({ score, total, timestamp, message });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('submit-quiz error', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Get the latest submission for the current user
+app.get('/api/user-summary', async (req, res) => {
+  // req.cookies.session → decoded in getCurrentUser
+  const user = await getCurrentUser(req);
+  if (!user) return res.status(401).json({ message: 'Not signed in' });
+
+  try {
+    const subsRef = db
+      .collection('users')
+      .doc(user.id)
+      .collection('submissions')
+      .orderBy('timestamp', 'desc')
+      .limit(1);
+    const snap = await subsRef.get();
+    if (snap.empty) return res.json(null);
+    const doc = snap.docs[0];
+    res.json({ id: doc.id, ...doc.data() });
+  } catch (err) {
+    console.error('user-summary error', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    // 1) Fetch all users
+    const usersSnap = await db.collection('users').get();
+    const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // 2) For each user, get their best score
+    const leaderboard = await Promise.all(users.map(async user => {
+      const subs = await db
+        .collection('users').doc(user.id)
+        .collection('submissions')
+        .orderBy('score', 'desc')
+        .limit(1)
+        .get();
+      if (subs.empty) return null;
+      const top = subs.docs[0].data();
+      return {
+        id: user.id,
+        name: user.name,
+        score: top.score
+      };
+    }));
+
+    // 3) Filter out users with no submissions & sort descending
+    const sorted = leaderboard
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score);
+
+    res.json(sorted);
+  } catch (err) {
+    console.error('leaderboard error', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 app.get('/api/test', (req, res) => {

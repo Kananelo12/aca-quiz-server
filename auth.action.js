@@ -1,4 +1,3 @@
-// auth.action.js
 const { getApps, initializeApp, cert } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getFirestore } = require('firebase-admin/firestore');
@@ -16,7 +15,7 @@ if (!apps.length) {
 }
 
 const auth = getAuth();
-const db   = getFirestore();
+const db = getFirestore();
 
 // Sign up logic
 async function signUp({ uid, name, email }) {
@@ -62,4 +61,4 @@ async function getCurrentUser(req) {
   }
 }
 
-module.exports = { signUp, signIn, signOut, getCurrentUser };
+module.exports = { signUp, signIn, signOut, getCurrentUser, db };
