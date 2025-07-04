@@ -1,4 +1,3 @@
-// index.js
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -6,9 +5,33 @@ const serverless = require('serverless-http');
 const { signUp, signIn, signOut, getCurrentUser } = require('./auth.action');
 
 const app = express();
+const cors = require("cors");
 
-// Allow your CRA origin (adjust if needed)
-app.use(cors({ origin: 'https://joel-aca-erp2025-quiz.vercel.app', credentials: true }));
+// Simplified CORS: whitelist both dev and prod origins
+// app.use(cors({
+//   origin: [
+//     'http://localhost:3001',                // CRA dev
+//     'https://joel-aca-erp2025-quiz.vercel.app' // prod CRA
+//   ],
+//   methods: ['GET','POST','OPTIONS'],
+//   allowedHeaders: ['Content-Type'],
+//   credentials: true
+// }));
+
+app.use(cors({
+  origin: true, // Allow all origins
+  credentials: true, // Allow cookies to be sent
+}))
+
+// Ensure preflight (OPTIONS) requests are handled
+// app.options('*', cors({
+//   origin: [
+//     'http://localhost:3001',
+//     'https://joel-aca-erp2025-quiz.vercel.app'
+//   ],
+//   credentials: true
+// }));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -32,12 +55,6 @@ app.post('/api/signin', async (req, res) => {
   });
   res.json({ success: true });
 });
-
-// app.post('/api/signin', async (req, res) => {
-//   const { email, idToken } = req.body;
-//   await signIn({ email, idToken });
-//   res.json({ success: true });
-// });
 
 app.post('/api/signout', async (_req, res) => {
   await signOut();
