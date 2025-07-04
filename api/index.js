@@ -6,10 +6,23 @@ const { signUp, signIn, signOut, getCurrentUser } = require("../auth.action");
 
 const app = express();
 
+// 🔑 Reflect the request origin in both dev & prod:
 app.use(cors({
-  origin: true, // Allow all origins
-  credentials: true, // Allow cookies to be sent
-}))
+  origin: true, // reflect back whatever Origin the browser sent
+  credentials: true, // allow Send-Cookie / Set-Cookie
+}));
+
+// ensure OPTIONS (preflight) also works:
+app.options('*', cors({
+  origin: true,
+  credentials: true
+}));
+
+// For Local Testing
+// app.use(cors({
+//   origin: true, // Allow all origins
+//   credentials: true, // Allow cookies to be sent
+// }))
 
 app.use(express.json());
 app.use(cookieParser());
